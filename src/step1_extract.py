@@ -98,6 +98,11 @@ def clean(records):
     df = pd.DataFrame(records)
     df = df.rename(columns={"_id": "flat_id"})
 
+    # Everything arrives as text - "232000", not 232000. Until we fix that,
+    # sorting by price would put "99000" after "1000000" (alphabetical), and
+    # summing would concatenate strings. This is the single most common
+    # source of quiet, wrong answers in a pipeline.
+
     df["flat_id"] = df["flat_id"].astype("int64")
     df["floor_area_sqm"] = df["floor_area_sqm"].astype(float)
     df["resale_price"] = df["resale_price"].astype(float)

@@ -15,13 +15,23 @@ import json
 import time
 
 from config import CACHE_TTL_SECONDS, get_redis
+
+# NEW TO REDIS? It is a dictionary that lives in memory, in its own process:
+#
+#   r.get(key)              read a value, or None if it is not there
+#   r.setex(key, ttl, val)  write a value that DELETES ITSELF after ttl seconds
+#
+# Two consequences worth saying out loud. Redis only stores strings, so we
+# json.dumps() on the way in and json.loads() on the way out. And because it
+# holds everything in RAM, it is fast but it is not the truth - MongoDB is.
+# Anything in here can vanish and the system must still be correct.
 from step2_load_mongo import market_overview, town_summary
 
 
 def cached_town_summary(town, ttl=CACHE_TTL_SECONDS, verbose=False):
     """town_summary() with Redis in front of it."""
     r = get_redis()
-    key = f"town:{town}"
+    key = f"town:{town}"   # e.g. "town:BEDOK" - one cache entry per town
 
     t0 = time.perf_counter()
     cached = r.get(key)
@@ -36,6 +46,9 @@ def cached_town_summary(town, ttl=CACHE_TTL_SECONDS, verbose=False):
     if verbose:
         print(f"  CACHE MISS {key} -> aggregating in MongoDB")
 
+    # Cache miss: do the expensive thing, then remember the answer so the
+    # next caller does not have to. The TTL is our tolerance for staleness -
+    # after it expires the next request pays full price again.
     result = town_summary(town)
     r.setex(key, ttl, json.dumps(result))
     return result
@@ -65,7 +78,7 @@ def cached_market_overview(ttl=CACHE_TTL_SECONDS):
 
 def demo_overview():
     """The headline comparison: whole-collection aggregation, cached or not."""
-    get_redis().delete("market:overview")
+    get_redis().delete("market:overview")   # start from a guaranteed miss
 
     miss = cached_market_overview()
     hit = cached_market_overview()
@@ -81,6 +94,8 @@ def demo_overview():
 
 def demo(town):
     """Show the miss/hit difference side by side."""
+    # Delete the key first, otherwise a leftover entry from an earlier run
+    # makes the "miss" a hit and the demo shows nothing.
     get_redis().delete(f"town:{town}")
 
     miss = cached_town_summary(town, verbose=True)

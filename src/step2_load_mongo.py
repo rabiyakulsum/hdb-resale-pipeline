@@ -11,6 +11,19 @@ import time
 
 from config import MONGO_COLLECTION, get_db
 
+# NEW TO MONGODB? Two ideas cover everything in this file:
+#
+#   1. A "document" is just a dict, and a "collection" is a list of them.
+#      No schema, no CREATE TABLE - you insert dicts and they are stored.
+#
+#   2. An "aggregation pipeline" is a list of stages that data flows through,
+#      like shell pipes. Each stage takes rows in and passes rows out:
+#           {"$match": ...}  keep only the rows that match   (like WHERE)
+#           {"$group": ...}  collapse rows into groups       (like GROUP BY)
+#           {"$sort":  ...}  order the result                (like ORDER BY)
+#      The "$" prefix means "this is an operator", and "$town" means
+#      "the value of the town field in this document".
+
 
 def load_flats(df, drop_existing=True):
     """Insert the DataFrame into MongoDB. Returns the doc count."""
@@ -18,8 +31,12 @@ def load_flats(df, drop_existing=True):
     coll = db[MONGO_COLLECTION]
 
     if drop_existing:
-        coll.delete_many({})  # keep re-runs idempotent
+        # Empty the collection first so running this twice does not give us
+        # 48,000 documents. {} means "match everything".
+        coll.delete_many({})
 
+    # to_dict("records") turns the DataFrame into a list of plain dicts,
+    # which is exactly what Mongo wants.
     coll.insert_many(df.to_dict("records"))
 
     # An index on town makes the town aggregation and the ?town= filter
@@ -30,6 +47,8 @@ def load_flats(df, drop_existing=True):
 
 def read_flats(query=None, limit=None):
     """Read flats back out, without Mongo's internal _id field."""
+    # find(what_to_match, which_fields). {"_id": 0} means "leave out the
+    # _id field" - Mongo adds its own internal id that we never asked for.
     cursor = get_db()[MONGO_COLLECTION].find(query or {}, {"_id": 0})
     if limit:
         cursor = cursor.limit(limit)
@@ -49,7 +68,11 @@ def town_summary(town):
     """
     t0 = time.perf_counter()
     pipeline = [
+        # Stage 1: throw away every town except the one asked for. Because
+        # there is an index on `town`, Mongo jumps straight to those
+        # documents instead of reading all 24,000.
         {"$match": {"town": town}},
+        # Stage 2: squash what survived into a single row of totals.
         {
             "$group": {
                 "_id": "$town",
@@ -91,6 +114,9 @@ def market_overview():
     """
     t0 = time.perf_counter()
     rows = list(get_db()[MONGO_COLLECTION].aggregate([
+        # No $match stage this time - nothing narrows the search first, so
+        # Mongo has to walk every document in the collection. That is what
+        # makes this query the expensive one, and worth caching in Step 4.
         {
             "$group": {
                 "_id": "$town",
@@ -103,6 +129,7 @@ def market_overview():
     ]))
     elapsed_ms = (time.perf_counter() - t0) * 1000
 
+    # $group always names its key "_id"; rename it to something readable.
     for row in rows:
         row["town"] = row.pop("_id")
         row["avg_price"] = round(row["avg_price"], 2)

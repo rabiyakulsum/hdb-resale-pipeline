@@ -13,6 +13,15 @@ from flask import Flask, jsonify, request
 from config import API_PORT, MONGO_COLLECTION, get_db
 from step2_load_mongo import list_towns, market_overview, read_flats, town_summary
 
+# NEW TO FLASK? The whole framework, in three lines:
+#
+#   app = Flask(__name__)          create the web application
+#   @app.route("/towns")           "when a browser asks for /towns..."
+#   def get_towns(): ...           "...run this function and send back what
+#                                   it returns"
+#
+# jsonify() turns a Python dict or list into a JSON response. That is the
+# entire API - the rest of this file is just deciding what to query.
 app = Flask(__name__)
 
 
@@ -37,6 +46,9 @@ def index():
 
 @app.route("/flats", methods=["GET"])
 def get_flats():
+    # request.args holds the ?key=value pairs from the URL. We only build a
+    # filter for the ones actually supplied, so /flats with no params
+    # returns everything.
     query = {}
     for field in ("town", "flat_type"):
         value = request.args.get(field)
@@ -46,10 +58,14 @@ def get_flats():
     return jsonify(read_flats(query, limit=request.args.get("limit", type=int)))
 
 
+# <int:flat_id> captures part of the URL and passes it in as an argument,
+# so /flats/42 calls get_flat(flat_id=42).
 @app.route("/flats/<int:flat_id>", methods=["GET"])
 def get_flat(flat_id):
     doc = get_db()[MONGO_COLLECTION].find_one({"flat_id": flat_id}, {"_id": 0})
     if doc is None:
+        # Returning a tuple lets us set the HTTP status code. 404 is how you
+        # say "no such thing" - an empty 200 would be a lie.
         return jsonify({"error": f"flat {flat_id} not found"}), 404
     return jsonify(doc)
 
@@ -62,7 +78,9 @@ def get_towns():
 @app.route("/towns/<town>", methods=["GET"])
 def get_town(town):
     """Aggregated stats for a town, with or without the Step 4 cache."""
-    town = town.upper()
+    town = town.upper()   # the dataset stores towns in caps
+    # Same route, two costs. The switch lives here so the Step 4 comparison
+    # needs no code edit in front of the class.
     if request.args.get("cache") == "true":
         from step4_cache_redis import cached_town_summary
 
