@@ -3,7 +3,7 @@ __pycache__/
 *.pyc
 .ipynb_checkpoints/
 
-# Agent working notes, not part of the class material
+# Agent working notes, not part of the project
 .claude/
 
 # Real credentials - never commit. Use .env.example as the template.

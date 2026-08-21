@@ -17,8 +17,8 @@ WHERE SETTINGS COME FROM
     Everything below falls back to a sensible local default, so the project
     still runs with no .env at all.
 
-    Teaching constants (page sizes, the dataset id) stay in this file. They
-    are part of the lesson, not part of the environment.
+    Constants that are part of how the pipeline works - page sizes, the
+    dataset id - stay in this file. They are not environment-specific.
 """
 import os
 from pathlib import Path
@@ -54,7 +54,7 @@ CACHE_TTL_SECONDS = int(os.getenv("CACHE_TTL_SECONDS", "60"))
 # Much longer, for the queries the dashboard needs but does not teach with:
 # the town list, the dataset summary, a page of rows. This dataset is a
 # static file - those answers cannot go stale during a class - and a 60s TTL
-# would make the dashboard stall every minute for no teaching benefit.
+# would make the dashboard stall every minute for nothing.
 STATIC_TTL_SECONDS = int(os.getenv("STATIC_TTL_SECONDS", "900"))
 
 # --- The real dataset we extract (Step 1) ----------------------------------

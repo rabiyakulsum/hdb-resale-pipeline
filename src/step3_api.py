@@ -27,7 +27,7 @@ app = Flask(__name__)
 
 @app.route("/", methods=["GET"])
 def index():
-    """Tiny self-documenting root, so learners can discover the routes."""
+    """Tiny self-documenting root, so the routes are discoverable."""
     return jsonify(
         {
             "service": "hdb-resale-pipeline",
@@ -82,7 +82,7 @@ def get_flat(flat_id):
 @app.route("/towns", methods=["GET"])
 def get_towns():
     """The town list. Identical for every visitor, so it is always cached -
-    there is no lesson in making the dropdown slow."""
+    there is nothing to be gained from a slow dropdown."""
     from step4_cache_redis import cached
 
     return jsonify(cached("towns:list", list_towns, ttl=STATIC_TTL_SECONDS))
@@ -93,7 +93,7 @@ def get_town(town):
     """Aggregated stats for a town, with or without the Step 4 cache."""
     town = town.upper()   # the dataset stores towns in caps
     # Same route, two costs. The switch lives here so the Step 4 comparison
-    # needs no code edit in front of the class.
+    # needs no code edit to demonstrate.
     if request.args.get("cache") == "true":
         from step4_cache_redis import cached_town_summary
 

@@ -4,8 +4,8 @@ Same idea as consume_own_api.py: requests.get against our Step 3 API. The
 only difference is that the results render as a page instead of print().
 Nothing here touches Mongo or Redis directly - the API already does that.
 
-The "Use Redis cache" toggle is the Step 4 lesson made visible: flip it and
-watch the same answer arrive in a fraction of the time.
+The "Use Redis cache" toggle makes Step 4 visible: flip it and watch the
+same answer arrive in a fraction of the time.
 
 Note that the toggle only controls the town summary. The other queries on
 this page are cached in Redis unconditionally by the API, because a slow

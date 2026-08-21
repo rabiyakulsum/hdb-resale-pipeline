@@ -1,8 +1,9 @@
 """The 'aha' exercise: extract from YOUR OWN pipeline.
 
 This is Step 1's code shape pointed at localhost instead of data.gov.sg.
-Student A runs step3_api.py; Student B runs this. Extraction isn't a
-one-time step - it's a role any system can play.
+Start step3_api.py in one terminal, run this in another, and the code cannot
+tell that it is no longer talking to data.gov.sg. Extraction isn't a one-time
+step - it's a role any system can play.
 """
 import requests
 

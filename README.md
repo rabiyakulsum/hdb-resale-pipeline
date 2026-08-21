@@ -73,9 +73,8 @@ Verify either with `curl localhost:5001/health` once the API is up.
 The dataset ships landed at [data/hdb_resale.csv](data/hdb_resale.csv), so the
 pipeline does **not** hit the network unless you pass `--extract`.
 
-For the classroom-facing walkthrough, open
-[notebooks/hdb_resale_pipeline.ipynb](notebooks/hdb_resale_pipeline.ipynb) —
-it runs the same code with the commentary alongside.
+[notebooks/hdb_resale_pipeline.ipynb](notebooks/hdb_resale_pipeline.ipynb)
+walks the same code step by step, with the explanation alongside each cell.
 
 ## The four steps
 
@@ -109,7 +108,7 @@ curl localhost:5001/health                    # mongo + redis liveness
 Every route takes `?cache=true` where a cache applies, so you can compare the
 two costs live without editing code.
 
-## Two things worth showing live
+## Two things worth trying
 
 ### 1. Extraction is harder than "read the file"
 
@@ -145,26 +144,28 @@ One town — the same indexed lookup
 
 The cheap query got expensive. Nothing about the query changed — the database
 just moved to the other end of a network connection, and the round trip now
-costs far more than the work. That is the lesson worth stopping on:
+costs far more than the work. Which is the point:
 
 **"Should I cache this?" is not a property of the query. It depends on where
 the data lives and what it costs to get there.**
 
-## Classroom exercise
+## Extract from your own pipeline
 
-Pair up. Student A runs `./run.sh api`. Student B runs `./run.sh consume` —
-which is Step 1's `requests.get(...)` shape with only the URL changed. Student
-B has now extracted from Student A's pipeline.
+Run `./run.sh api` in one terminal, then `./run.sh consume` in another.
 
-The point: **extraction isn't a one-time step — it's a role any system can
-play, source or destination, depending on which side of the request you're
-on.**
+`consume_own_api.py` is Step 1's `requests.get(...)` with nothing changed but
+the URL. In Step 1 you pulled from data.gov.sg; now you are pulling from
+something you built, and the code cannot tell the difference.
+
+That is the whole idea: **extraction isn't a one-time step — it's a role any
+system can play, source or destination, depending on which side of the
+request you're on.**
 
 ## Offline fallback
 
 If data.gov.sg is unreachable, [step1_extract.py](src/step1_extract.py) falls
-back to the CSV landed last time and says so, so a classroom with flaky wifi
-can still complete the pipeline.
+back to the CSV landed last time and says so, so a flaky network cannot
+block the rest of the pipeline.
 
 ## Licence
 
@@ -185,6 +186,6 @@ notice.
 No API key or account is needed to pull the data yourself.
 
 [data/hdb_resale.csv](data/hdb_resale.csv) is a 24,000-row sample of that
-dataset, committed so the class does not depend on the API being reachable.
+dataset, committed so nothing here depends on the API being reachable.
 `price_per_sqm` is the one column we derive ourselves; everything else is as
 published.

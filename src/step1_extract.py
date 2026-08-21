@@ -3,7 +3,7 @@
 HDB resale flat prices from data.gov.sg. No API key, no signup, 238,000+
 real transactions.
 
-Two teaching points live here:
+Two things worth noticing here:
 
   1. The data is LIVE and someone else's. It can 500, it can time out, it can
      change between runs. Contrast a file sitting on your disk.
@@ -121,7 +121,7 @@ def extract(n=N_RECORDS, path=RAW_CSV):
     gets us all 26 towns is MANY pages spread wide, not a few big ones.
 
     If the API is unreachable, fall back to the CSV we landed last time so a
-    classroom with flaky wifi can still run the rest of the pipeline.
+    flaky network cannot block the rest of the pipeline.
     """
     t0 = time.perf_counter()
     page_size = 1_000 if n > 1_000 else PAGE_SIZE
@@ -138,7 +138,7 @@ def extract(n=N_RECORDS, path=RAW_CSV):
             return df
         raise SystemExit(
             f"No network and no {path.name} to fall back on - "
-            "run this once with a connection before class."
+            "run this once while you have a connection."
         )
 
 

@@ -7,7 +7,7 @@ get it. That is the whole idea of a cache: same answer, different cost.
     cache-then-store:  look in Redis -> hit? return it
                                      -> miss? ask MongoDB, remember, return
 
-revenue-style aggregations are the classic thing to cache: expensive to
+Aggregations like these are the classic thing to cache: expensive to
 compute, identical for every user who asks, and fine to be a few seconds
 stale.
 """
