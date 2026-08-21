@@ -103,4 +103,15 @@ def get_redis():
 
     # decode_responses=True hands us str instead of bytes, so callers can
     # json.loads() the result directly.
-    return redis.Redis.from_url(REDIS_URL, decode_responses=True)
+    options = {"decode_responses": True}
+
+    # rediss:// (two s) means TLS, which needs a list of trusted certificate
+    # authorities to check the server against - the same thing Atlas needed.
+    # Python does not use the OS list, so point it at certifi's bundle or it
+    # fails with CERTIFICATE_VERIFY_FAILED. See get_db() for the long version.
+    if REDIS_URL.startswith("rediss://"):
+        import certifi
+
+        options["ssl_ca_certs"] = certifi.where()
+
+    return redis.Redis.from_url(REDIS_URL, **options)
