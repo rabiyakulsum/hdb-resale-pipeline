@@ -25,15 +25,16 @@ from config import MONGO_COLLECTION, get_db
 #      "the value of the town field in this document".
 
 
-def load_flats(df, drop_existing=True):
+def load_flats(df):
     """Insert the DataFrame into MongoDB. Returns the doc count."""
     db = get_db()
     coll = db[MONGO_COLLECTION]
 
-    if drop_existing:
-        # Empty the collection first so running this twice does not give us
-        # 48,000 documents. {} means "match everything".
-        coll.delete_many({})
+    # Empty the collection first so running this twice does not give us
+    # 48,000 documents. {} means "match everything". This is what makes the
+    # step safe to re-run, which matters more than it sounds - a pipeline you
+    # cannot run twice is a pipeline you cannot fix.
+    coll.delete_many({})
 
     # to_dict("records") turns the DataFrame into a list of plain dicts,
     # which is exactly what Mongo wants.

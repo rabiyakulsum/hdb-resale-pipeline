@@ -129,27 +129,35 @@ One town — indexed, touches ~1,000 documents
   miss:  10.80 ms      hit:  0.13 ms       ~83x faster
 ```
 
-Now move both to managed services in another region, and measure the round
-trip to each:
+Now move both to managed services. What matters is not that they are remote —
+it is how far. Measure the round trip to each:
 
 ```
-Redis on localhost         0.20 ms
-MongoDB Atlas            194.76 ms
-Redis Cloud (us-east-1)  250.18 ms
+Redis on localhost           0.20 ms
+Redis Cloud (same region)    7.32 ms
+MongoDB Atlas              194.76 ms
+Redis Cloud (us-east-1)    250.18 ms
 ```
 
-Redis is now *further away than the database it is supposed to be protecting*,
-and the same two queries come out like this:
+With Redis in the **same region** as everything else, the cache still wins
+comfortably:
 
 ```
-Market overview
-  miss: 418.28 ms      hit: 250.79 ms        ~2x faster
-One town
-  miss: 207.16 ms      hit: 250.51 ms      SLOWER than not caching
+Market overview   miss: 2167.57 ms   hit: 5.73 ms     ~378x faster
+One town          miss:  180.32 ms   hit: 6.27 ms      ~29x faster
 ```
 
-Nothing about the code or the data changed. The cache lost because a cache's
-whole advantage is being cheap to reach, and 250 ms away is not cheap.
+But put that same Redis in **us-east-1**, further away than the database it is
+protecting, and it collapses:
+
+```
+Market overview   miss:  418.28 ms   hit: 250.79 ms          ~2x faster
+One town          miss:  207.16 ms   hit: 250.51 ms   SLOWER than no cache
+```
+
+Nothing about the code or the data changed between those two — only the
+distance to the cache. A cache's entire advantage is being cheap to reach,
+and 250 ms away is not cheap.
 
 **A cache is not fast because it is Redis. It is fast because it is close.**
 Put your speed layer next to whatever is asking, or do not bother.

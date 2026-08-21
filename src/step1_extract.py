@@ -15,7 +15,6 @@ Two things worth noticing here:
 Extraction ends with the data landed as a CSV. Everything after this step
 reads that file, not the API.
 """
-import sys
 import time
 
 import pandas as pd
