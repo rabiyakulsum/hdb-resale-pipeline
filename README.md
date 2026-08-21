@@ -1,14 +1,39 @@
 # HDB Resale Pipeline — Big Data Concepts
 
-One data lifecycle, end to end, on **real Singapore HDB resale transactions**
-from [data.gov.sg](https://data.gov.sg) — 238,573 of them, no API key required.
+Build a complete data pipeline, end to end, on **real Singapore HDB resale
+transactions** from [data.gov.sg](https://data.gov.sg) — 238,573 of them, no
+API key required.
 
 ```
 EXTRACT → STORE → SERVE → CACHE
 ```
 
-The order is the point. We get it working, watch it be slow, and *then* reach
-for Redis. A cache introduced before there is a slow query is just a word.
+You pull real data out of a live government API, store it in MongoDB, serve it
+back out through a REST API you write yourself, put a Streamlit dashboard on
+top, and speed the whole thing up with Redis.
+
+## What you will learn
+
+- **Extraction is not "read the file".** Real APIs cap their responses, rate
+  limit you, and hand data back in an awkward order. You will hit all three.
+- **Why a database, when a CSV exists.** MongoDB earns its place the moment
+  you ask a question a file cannot answer.
+- **What an API actually is.** You consume one in Step 1 and become one in
+  Step 3, using nearly identical code.
+- **When a cache helps, and when it does not.** You will measure both, and
+  find at least one case where adding Redis makes things *slower*.
+
+The order matters. You get it working, watch it be slow, and *then* reach for
+Redis — because a cache introduced before there is a slow query is just a
+word.
+
+## Where to start
+
+Work through
+[notebooks/hdb_resale_pipeline.ipynb](notebooks/hdb_resale_pipeline.ipynb).
+It runs the same code as the scripts, one step at a time, with the reasoning
+next to each cell. Come back here when you want to run the whole thing or
+look something up.
 
 ## Prerequisites
 
@@ -71,14 +96,12 @@ Verify either with `curl localhost:5001/health` once the API is up.
 `api` and `dashboard` are servers — they block, so each needs its own terminal.
 
 The dataset ships landed at [data/hdb_resale.csv](data/hdb_resale.csv), so the
-pipeline does **not** hit the network unless you pass `--extract`.
-
-[notebooks/hdb_resale_pipeline.ipynb](notebooks/hdb_resale_pipeline.ipynb)
-walks the same code step by step, with the explanation alongside each cell.
+pipeline does **not** hit the network unless you pass `--extract`. You can run
+everything on a train with no wifi.
 
 ## The four steps
 
-| File | Step | What it teaches |
+| File | Step | What you will learn from it |
 |---|---|---|
 | [src/config.py](src/config.py) | — | One place that knows where everything lives |
 | [src/step1_extract.py](src/step1_extract.py) | 1 | Live API: paging, rate limits, landing a file |
@@ -95,7 +118,7 @@ Served on **port 5001** (macOS uses 5000 for AirPlay Receiver).
 
 ```bash
 curl localhost:5001/                          # self-documenting index
-curl localhost:5001/towns                     # every town we hold
+curl localhost:5001/towns                     # every town in the data
 curl "localhost:5001/flats?town=BEDOK&limit=5"   # limit defaults to 100
 curl "localhost:5001/flats?flat_type=4%20ROOM&limit=5"
 curl localhost:5001/flats/42                  # single transaction (404 if absent)
@@ -105,10 +128,10 @@ curl localhost:5001/stats                     # by flat type
 curl localhost:5001/health                    # mongo + redis liveness
 ```
 
-Every route takes `?cache=true` where a cache applies, so you can compare the
-two costs live without editing code.
+Routes that hit an expensive query accept `?cache=true`, so you can compare
+the cached and uncached cost yourself without editing any code.
 
-## Three things worth trying
+## Three things worth understanding
 
 ### 1. Extraction is harder than "read the file"
 
@@ -130,7 +153,7 @@ One town — indexed, touches ~1,000 documents
 ```
 
 Now move both to managed services. What matters is not that they are remote —
-it is how far. Measure the round trip to each:
+it is how far away. These are the round trips measured from one machine:
 
 ```
 Redis on localhost           0.20 ms
@@ -165,8 +188,8 @@ Put your speed layer next to whatever is asking, or do not bother.
 ### 3. Creating a connection is not free
 
 The helpers in [config.py](src/config.py) build each client **once** and reuse
-it. An earlier version created a new one per call, which is invisible against
-localhost and brutal against anything remote:
+it. An earlier version of this project created a new one per call — invisible
+against localhost, brutal against anything remote:
 
 ```
                        new client per call    reused
@@ -198,7 +221,7 @@ block the rest of the pipeline.
 
 ## Licence
 
-The code is MIT licensed — see [LICENSE](LICENSE). Use it, fork it, teach with
+The code is MIT licensed — see [LICENSE](LICENSE). Use it, fork it, build on
 it. The dataset has its own separate terms, below.
 
 ## Data
@@ -216,5 +239,5 @@ No API key or account is needed to pull the data yourself.
 
 [data/hdb_resale.csv](data/hdb_resale.csv) is a 24,000-row sample of that
 dataset, committed so nothing here depends on the API being reachable.
-`price_per_sqm` is the one column we derive ourselves; everything else is as
+`price_per_sqm` is the only column derived here; everything else is exactly as
 published.
