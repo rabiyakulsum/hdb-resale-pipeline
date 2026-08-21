@@ -151,6 +151,11 @@ If data.gov.sg is unreachable, [step1_extract.py](src/step1_extract.py) falls
 back to the CSV landed last time and says so, so a classroom with flaky wifi
 can still complete the pipeline.
 
+## Licence
+
+The code is MIT licensed — see [LICENSE](LICENSE). Use it, fork it, teach with
+it. The dataset has its own separate terms, below.
+
 ## Data
 
 HDB resale flat prices, published by Singapore's Housing & Development Board
