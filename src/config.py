@@ -63,7 +63,7 @@ STATIC_TTL_SECONDS = int(os.getenv("STATIC_TTL_SECONDS", "900"))
 DATA_GOV_URL = "https://data.gov.sg/api/action/datastore_search"
 RESALE_DATASET_ID = "d_8b84c4ee58e3cfc0ece0d773c8ca6abc"
 
-N_RECORDS = 100   # how many rows we pull for class
+N_RECORDS = 100   # rows pulled when no count is given
 PAGE_SIZE = 50    # deliberately small, so paging takes more than one request
 PAGE_PAUSE_SECONDS = 1.2   # data.gov.sg returns 429 if you page too fast
 
