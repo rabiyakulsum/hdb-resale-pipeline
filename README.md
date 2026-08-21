@@ -158,11 +158,16 @@ it. The dataset has its own separate terms, below.
 
 ## Data
 
-HDB resale flat prices, published by Singapore's Housing & Development Board
-through [data.gov.sg](https://data.gov.sg/datasets/d_8b84c4ee58e3cfc0ece0d773c8ca6abc/view)
-and made available under the
-[Singapore Open Data Licence](https://data.gov.sg/open-data-licence).
-No API key or account is needed to pull it.
+Contains information from **Resale Flat Prices**, accessed on 21 August 2026
+from [data.gov.sg](https://data.gov.sg/datasets/d_8b84c4ee58e3cfc0ece0d773c8ca6abc/view),
+which is made available under the terms of the
+[Singapore Open Data Licence version 1.0](https://data.gov.sg/open-data-licence).
+
+That licence permits redistribution — which is why the CSV can be committed
+here — provided this notice travels with it. If you fork this repo, keep the
+notice.
+
+No API key or account is needed to pull the data yourself.
 
 [data/hdb_resale.csv](data/hdb_resale.csv) is a 24,000-row sample of that
 dataset, committed so the class does not depend on the API being reachable.
