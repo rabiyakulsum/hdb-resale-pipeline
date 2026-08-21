@@ -35,7 +35,28 @@ Verify with `nc -z localhost 27017 && nc -z localhost 6379`, or
 ```bash
 python3 -m venv .venv
 .venv/bin/pip install -r requirements.txt
+cp .env.example .env
 ```
+
+`.env` holds the connection settings and is gitignored — it is the only place
+a password should ever appear. [.env.example](.env.example) is the committed
+template that documents every key. Every setting has a working local default,
+so the defaults run as-is against a local MongoDB and Redis.
+
+### Using MongoDB Atlas instead of a local MongoDB
+
+Put the Atlas connection string in `.env` and change nothing else:
+
+```bash
+MONGO_URI=mongodb+srv://<username>:<password>@<cluster>.mongodb.net/?retryWrites=true&w=majority
+```
+
+Two things that catch people out: your IP has to be allowed under Atlas
+**Network Access**, and a password containing `@ : / ?` must be
+percent-encoded (`@` becomes `%40`). The same idea applies to a hosted Redis
+— set `REDIS_URL` to a `rediss://` URL.
+
+Verify either with `curl localhost:5001/health` once the API is up.
 
 ## Run it
 
