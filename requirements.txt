@@ -6,3 +6,4 @@ flask>=3.0
 streamlit>=1.30
 python-dotenv>=1.0
 dnspython>=2.4       # required for Atlas mongodb+srv:// URIs
+certifi>=2024.2      # CA bundle for Atlas TLS; see get_db() in config.py

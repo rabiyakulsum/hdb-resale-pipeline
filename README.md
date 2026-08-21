@@ -119,21 +119,36 @@ town** — take the first 100 and you get one town, which quietly ruins every
 aggregation downstream. [step1_extract.py](src/step1_extract.py) spreads its
 pages across the whole dataset instead.
 
-### 2. A cache is only worth it when the thing behind it is expensive
+### 2. What a cache is worth depends on what is behind it
+
+Run the same two queries against a **local MongoDB**:
 
 ```
 Market overview — every town ranked (Mongo walks the whole collection)
-  miss:  21.97 ms  (mongodb)
-  hit:    1.19 ms  (redis)      ~18x faster
-
-One town — Mongo has an index and touches ~1,000 documents
-  miss:   5.67 ms  (mongodb)
-  hit:    1.29 ms  (redis)       ~4x faster
+  miss:  21.97 ms      hit:  1.19 ms       ~18x faster
+One town — indexed, touches ~1,000 documents
+  miss:   5.67 ms      hit:  1.29 ms        ~4x faster
 ```
 
-The second comparison is the more useful lesson: put a cache in front of a
-fast indexed lookup and you have added a second system to keep consistent in
+Only the first one is really worth caching. Put Redis in front of a fast
+indexed lookup and you have added a second system to keep consistent in
 exchange for almost nothing.
+
+Now move the database to **MongoDB Atlas** and change nothing else:
+
+```
+Market overview
+  miss: 1747.59 ms     hit:  3.52 ms      ~496x faster
+One town — the same indexed lookup
+  miss: 1840.78 ms     hit:  6.90 ms      ~267x faster
+```
+
+The cheap query got expensive. Nothing about the query changed — the database
+just moved to the other end of a network connection, and the round trip now
+costs far more than the work. That is the lesson worth stopping on:
+
+**"Should I cache this?" is not a property of the query. It depends on where
+the data lives and what it costs to get there.**
 
 ## Classroom exercise
 

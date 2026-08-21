@@ -65,11 +65,27 @@ API_PORT = int(os.getenv("API_PORT", "5001"))  # 5000 is AirPlay on macOS
 
 def get_db():
     """Return the MongoDB database handle (the system of record)."""
+    import certifi
     from pymongo import MongoClient
 
     # A longer timeout than a local socket needs, because Atlas is a network
     # round trip away and a cold cluster can take a moment to answer.
-    client = MongoClient(MONGO_URI, serverSelectionTimeoutMS=10_000)
+    options = {"serverSelectionTimeoutMS": 10_000}
+
+    # Atlas connections are TLS, and TLS means verifying the server's
+    # certificate against a list of trusted authorities. Python does not use
+    # the operating system's list - a python.org install ships with no CA
+    # bundle wired up at all, which fails as:
+    #
+    #     [SSL: CERTIFICATE_VERIFY_FAILED] unable to get local issuer certificate
+    #
+    # certifi IS that list, packaged as a file. Pointing pymongo at it fixes
+    # the error on every machine, instead of depending on whoever remembered
+    # to run "Install Certificates.command".
+    if MONGO_URI.startswith("mongodb+srv://") or "tls=true" in MONGO_URI.lower():
+        options["tlsCAFile"] = certifi.where()
+
+    client = MongoClient(MONGO_URI, **options)
     return client[MONGO_DB]
 
 
