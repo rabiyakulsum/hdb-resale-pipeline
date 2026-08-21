@@ -47,13 +47,19 @@ brew services start redis
 # Linux (systemd)
 sudo systemctl start mongod redis
 
-# or, with Docker, no local install
-docker run -d -p 27017:27017 mongo
-docker run -d -p 6379:6379 redis
+# or, with Docker, if you would rather not install either
+docker run -d --name hdb-mongo -p 27017:27017 mongo
+docker run -d --name hdb-redis -p 6379:6379 redis
 ```
 
-Verify with `nc -z localhost 27017 && nc -z localhost 6379`, or
-`curl localhost:5001/health` once the API is up.
+Those two commands pull the official MongoDB and Redis images straight from
+Docker Hub and run them — there is no Dockerfile or compose file in this repo
+because there is nothing here to build. Stop them again with
+`docker rm -f hdb-mongo hdb-redis`. Data lives inside the containers, so
+removing them clears it; re-run `./run.sh pipeline` to reload.
+
+Verify whichever you chose with `nc -z localhost 27017 && nc -z localhost 6379`,
+or `curl localhost:5001/health` once the API is up.
 
 ## Setup
 
@@ -187,19 +193,22 @@ Put your speed layer next to whatever is asking, or do not bother.
 
 ### 3. Creating a connection is not free
 
-The helpers in [config.py](src/config.py) build each client **once** and reuse
-it. An earlier version of this project created a new one per call — invisible
-against localhost, brutal against anything remote:
+Opening a connection is work: a TCP handshake, an authentication round trip,
+and for Atlas an SRV DNS lookup, a TLS handshake and replica-set discovery.
+Do that once and it is nothing. Do it on every query and it costs more than
+the query does:
 
 ```
-                       new client per call    reused
-Redis GET                       1625.6 ms    248.7 ms
-Mongo ping                      1813.3 ms    175.3 ms
+                       a new client each call    one reused client
+Redis GET                          1625.6 ms             248.7 ms
+Mongo ping                         1813.3 ms             175.3 ms
 ```
 
-Opening a connection means a TCP handshake, an authentication round trip, and
-for Atlas an SRV DNS lookup, a TLS handshake and replica-set discovery. Paying
-that on every query costs more than the query.
+Against localhost the difference is invisible, which is how this mistake
+survives in a lot of real code until the database moves. The helpers in
+[config.py](src/config.py) build each client **once** and hand the same one
+back every time — both drivers keep an internal connection pool and are
+designed to be long-lived.
 
 ## Extract from your own pipeline
 
