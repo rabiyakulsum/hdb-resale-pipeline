@@ -1,4 +1,4 @@
-# HDB Resale Pipeline — Big Data Concepts in One Hour
+# HDB Resale Pipeline — Big Data Concepts
 
 One data lifecycle, end to end, on **real Singapore HDB resale transactions**
 from [data.gov.sg](https://data.gov.sg) — 238,573 of them, no API key required.
