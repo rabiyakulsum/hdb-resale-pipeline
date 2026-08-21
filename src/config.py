@@ -70,6 +70,16 @@ PAGE_PAUSE_SECONDS = 1.2   # data.gov.sg returns 429 if you page too fast
 # --- Our own API (Step 3) --------------------------------------------------
 API_PORT = int(os.getenv("API_PORT", "5001"))  # 5000 is AirPlay on macOS
 
+# How many rows /flats returns when nobody says. Without a default, one
+# request for /flats hands back all 24,000 documents - 6.8 MB, five seconds,
+# and a 6.8 MB entry in Redis because that route is cached.
+#
+# This is the same decision data.gov.sg made about us in Step 1, seen from
+# the other side. Their cap is why we had to write a paging loop; ours is
+# why somebody else would have to.
+DEFAULT_LIMIT = int(os.getenv("DEFAULT_LIMIT", "100"))
+MAX_LIMIT = int(os.getenv("MAX_LIMIT", "1000"))
+
 
 # Clients are created once and reused. This matters far more than it looks.
 #

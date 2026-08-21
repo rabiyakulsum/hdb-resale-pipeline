@@ -10,7 +10,8 @@ exists.
 """
 from flask import Flask, jsonify, request
 
-from config import API_PORT, MONGO_COLLECTION, STATIC_TTL_SECONDS, get_db
+from config import (API_PORT, DEFAULT_LIMIT, MAX_LIMIT, MONGO_COLLECTION,
+                    STATIC_TTL_SECONDS, get_db)
 from step2_load_mongo import list_towns, market_overview, read_flats, town_summary
 
 # NEW TO FLASK? The whole framework, in three lines:
@@ -32,7 +33,8 @@ def index():
         {
             "service": "hdb-resale-pipeline",
             "endpoints": {
-                "GET /flats": "resale transactions; ?town=&flat_type=&limit=",
+                "GET /flats": (f"resale transactions; ?town=&flat_type=&limit= "
+                               f"(default {DEFAULT_LIMIT}, max {MAX_LIMIT})"),
                 "GET /flats/<flat_id>": "a single transaction",
                 "GET /towns": "every town we hold",
                 "GET /towns/<town>": "aggregated stats; add ?cache=true for Step 4",
@@ -55,7 +57,11 @@ def get_flats():
         if value:
             query[field] = value
 
-    limit = request.args.get("limit", type=int)
+    # Never return the whole collection. Unbounded means 24,000 documents and
+    # 6.8 MB per request, so an unasked-for limit is applied and a ceiling is
+    # enforced on whatever is asked for.
+    limit = request.args.get("limit", type=int) or DEFAULT_LIMIT
+    limit = min(limit, MAX_LIMIT)
 
     # This is the biggest payload on the dashboard - hundreds of documents
     # dragged across the network. Cached per filter combination, so flipping

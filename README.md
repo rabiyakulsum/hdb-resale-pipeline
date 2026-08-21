@@ -96,7 +96,7 @@ Served on **port 5001** (macOS uses 5000 for AirPlay Receiver).
 ```bash
 curl localhost:5001/                          # self-documenting index
 curl localhost:5001/towns                     # every town we hold
-curl "localhost:5001/flats?town=BEDOK&limit=5"
+curl "localhost:5001/flats?town=BEDOK&limit=5"   # limit defaults to 100
 curl "localhost:5001/flats?flat_type=4%20ROOM&limit=5"
 curl localhost:5001/flats/42                  # single transaction (404 if absent)
 curl localhost:5001/towns/BEDOK               # aggregated, uncached
