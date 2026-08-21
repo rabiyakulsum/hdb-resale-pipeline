@@ -71,10 +71,29 @@ PAGE_PAUSE_SECONDS = 1.2   # data.gov.sg returns 429 if you page too fast
 API_PORT = int(os.getenv("API_PORT", "5001"))  # 5000 is AirPlay on macOS
 
 
+# Clients are created once and reused. This matters far more than it looks.
+#
+# Building a client is not free: opening a connection means a TCP handshake,
+# an authentication round trip, and for Atlas also an SRV DNS lookup, a TLS
+# handshake and replica-set discovery. Against a server on localhost that
+# costs microseconds and nobody notices. Against a server on another
+# continent it costs most of a second, EVERY CALL.
+#
+# Both clients hold an internal connection pool and are safe to share, which
+# is exactly why they are meant to be long-lived. Measured on a remote Redis
+# and Atlas: 1626ms -> 249ms and 1813ms -> 175ms just from reusing them.
+_mongo_client = None
+_redis_client = None
+
+
 def get_db():
     """Return the MongoDB database handle (the system of record)."""
+    global _mongo_client
     import certifi
     from pymongo import MongoClient
+
+    if _mongo_client is not None:
+        return _mongo_client[MONGO_DB]
 
     # A longer timeout than a local socket needs, because Atlas is a network
     # round trip away and a cold cluster can take a moment to answer.
@@ -93,13 +112,17 @@ def get_db():
     if MONGO_URI.startswith("mongodb+srv://") or "tls=true" in MONGO_URI.lower():
         options["tlsCAFile"] = certifi.where()
 
-    client = MongoClient(MONGO_URI, **options)
-    return client[MONGO_DB]
+    _mongo_client = MongoClient(MONGO_URI, **options)
+    return _mongo_client[MONGO_DB]
 
 
 def get_redis():
     """Return the Redis client (the speed layer)."""
+    global _redis_client
     import redis
+
+    if _redis_client is not None:
+        return _redis_client
 
     # decode_responses=True hands us str instead of bytes, so callers can
     # json.loads() the result directly.
@@ -114,4 +137,5 @@ def get_redis():
 
         options["ssl_ca_certs"] = certifi.where()
 
-    return redis.Redis.from_url(REDIS_URL, **options)
+    _redis_client = redis.Redis.from_url(REDIS_URL, **options)
+    return _redis_client

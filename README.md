@@ -108,7 +108,7 @@ curl localhost:5001/health                    # mongo + redis liveness
 Every route takes `?cache=true` where a cache applies, so you can compare the
 two costs live without editing code.
 
-## Two things worth trying
+## Three things worth trying
 
 ### 1. Extraction is harder than "read the file"
 
@@ -118,36 +118,57 @@ town** — take the first 100 and you get one town, which quietly ruins every
 aggregation downstream. [step1_extract.py](src/step1_extract.py) spreads its
 pages across the whole dataset instead.
 
-### 2. What a cache is worth depends on what is behind it
+### 2. A cache only helps if it is closer than what it is caching
 
-Run the same two queries against a **local MongoDB**:
+With MongoDB and Redis both on your own machine:
 
 ```
 Market overview — every town ranked (Mongo walks the whole collection)
-  miss:  21.97 ms      hit:  1.19 ms       ~18x faster
+  miss:  34.79 ms      hit:  0.18 ms      ~193x faster
 One town — indexed, touches ~1,000 documents
-  miss:   5.67 ms      hit:  1.29 ms        ~4x faster
+  miss:  10.80 ms      hit:  0.13 ms       ~83x faster
 ```
 
-Only the first one is really worth caching. Put Redis in front of a fast
-indexed lookup and you have added a second system to keep consistent in
-exchange for almost nothing.
+Now move both to managed services in another region, and measure the round
+trip to each:
 
-Now move the database to **MongoDB Atlas** and change nothing else:
+```
+Redis on localhost         0.20 ms
+MongoDB Atlas            194.76 ms
+Redis Cloud (us-east-1)  250.18 ms
+```
+
+Redis is now *further away than the database it is supposed to be protecting*,
+and the same two queries come out like this:
 
 ```
 Market overview
-  miss: 1747.59 ms     hit:  3.52 ms      ~496x faster
-One town — the same indexed lookup
-  miss: 1840.78 ms     hit:  6.90 ms      ~267x faster
+  miss: 418.28 ms      hit: 250.79 ms        ~2x faster
+One town
+  miss: 207.16 ms      hit: 250.51 ms      SLOWER than not caching
 ```
 
-The cheap query got expensive. Nothing about the query changed — the database
-just moved to the other end of a network connection, and the round trip now
-costs far more than the work. Which is the point:
+Nothing about the code or the data changed. The cache lost because a cache's
+whole advantage is being cheap to reach, and 250 ms away is not cheap.
 
-**"Should I cache this?" is not a property of the query. It depends on where
-the data lives and what it costs to get there.**
+**A cache is not fast because it is Redis. It is fast because it is close.**
+Put your speed layer next to whatever is asking, or do not bother.
+
+### 3. Creating a connection is not free
+
+The helpers in [config.py](src/config.py) build each client **once** and reuse
+it. An earlier version created a new one per call, which is invisible against
+localhost and brutal against anything remote:
+
+```
+                       new client per call    reused
+Redis GET                       1625.6 ms    248.7 ms
+Mongo ping                      1813.3 ms    175.3 ms
+```
+
+Opening a connection means a TCP handshake, an authentication round trip, and
+for Atlas an SRV DNS lookup, a TLS handshake and replica-set discovery. Paying
+that on every query costs more than the query.
 
 ## Extract from your own pipeline
 
