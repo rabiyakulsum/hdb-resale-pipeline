@@ -47,7 +47,15 @@ MONGO_COLLECTION = os.getenv("MONGO_COLLECTION", "resale_flats")
 # local Redis and a hosted one. rediss:// (two s) means TLS.
 REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379")
 
+# Short, because Step 4 demonstrates a cache EXPIRING. Re-run a demo a minute
+# later and you get a MISS again, which is the point.
 CACHE_TTL_SECONDS = int(os.getenv("CACHE_TTL_SECONDS", "60"))
+
+# Much longer, for the queries the dashboard needs but does not teach with:
+# the town list, the dataset summary, a page of rows. This dataset is a
+# static file - those answers cannot go stale during a class - and a 60s TTL
+# would make the dashboard stall every minute for no teaching benefit.
+STATIC_TTL_SECONDS = int(os.getenv("STATIC_TTL_SECONDS", "900"))
 
 # --- The real dataset we extract (Step 1) ----------------------------------
 # HDB resale flat prices, 2017 onwards - data.gov.sg, no API key needed.

@@ -7,6 +7,10 @@ Nothing here touches Mongo or Redis directly - the API already does that.
 The "Use Redis cache" toggle is the Step 4 lesson made visible: flip it and
 watch the same answer arrive in a fraction of the time.
 
+Note that the toggle only controls the town summary. The other queries on
+this page are cached in Redis unconditionally by the API, because a slow
+dropdown teaches nothing.
+
 NEW TO STREAMLIT? The one thing to understand:
 
     This file is an ordinary top-to-bottom Python script. Streamlit runs the
@@ -83,9 +87,14 @@ st.caption(f"Served from **{summary.get('source', 'unknown')}**. "
 # --- The transactions themselves -------------------------------------------
 st.subheader("Transactions")
 
+# Fetch the summary ONCE and reuse it. Streamlit re-runs this whole file on
+# every widget interaction, so a duplicated request is not paid once - it is
+# paid again every single time anyone touches a dropdown.
+stats = get("/stats")
+
 # Build the dropdown options out of whatever the API reports, so this page
 # never hardcodes a list that could drift from the data.
-flat_types = ["All"] + sorted({r["_id"] for r in get("/stats")["by_flat_type"]})
+flat_types = ["All"] + sorted({r["_id"] for r in stats["by_flat_type"]})
 flat_type = st.selectbox("Flat type", flat_types)
 
 # The filtering happens in MongoDB, not here. We pass the user's choice
@@ -100,7 +109,6 @@ st.write(f"{len(flats):,} rows (capped at 500)")
 st.dataframe(flats, width="stretch")      # scrollable, sortable table
 
 # --- Dataset-level summary -------------------------------------------------
-stats = get("/stats")
 st.subheader("Average price by flat type")
 st.caption(f"{stats['total_transactions']:,} transactions across {stats['towns']} towns")
 

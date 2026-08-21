@@ -10,7 +10,7 @@ exists.
 """
 from flask import Flask, jsonify, request
 
-from config import API_PORT, MONGO_COLLECTION, get_db
+from config import API_PORT, MONGO_COLLECTION, STATIC_TTL_SECONDS, get_db
 from step2_load_mongo import list_towns, market_overview, read_flats, town_summary
 
 # NEW TO FLASK? The whole framework, in three lines:
@@ -55,7 +55,16 @@ def get_flats():
         if value:
             query[field] = value
 
-    return jsonify(read_flats(query, limit=request.args.get("limit", type=int)))
+    limit = request.args.get("limit", type=int)
+
+    # This is the biggest payload on the dashboard - hundreds of documents
+    # dragged across the network. Cached per filter combination, so flipping
+    # back to a town you already looked at is instant.
+    from step4_cache_redis import cached
+
+    key = f"flats:{query.get('town', '*')}:{query.get('flat_type', '*')}:{limit}"
+    return jsonify(cached(key, lambda: read_flats(query, limit=limit),
+                          ttl=STATIC_TTL_SECONDS))
 
 
 # <int:flat_id> captures part of the URL and passes it in as an argument,
@@ -72,7 +81,11 @@ def get_flat(flat_id):
 
 @app.route("/towns", methods=["GET"])
 def get_towns():
-    return jsonify(list_towns())
+    """The town list. Identical for every visitor, so it is always cached -
+    there is no lesson in making the dropdown slow."""
+    from step4_cache_redis import cached
+
+    return jsonify(cached("towns:list", list_towns, ttl=STATIC_TTL_SECONDS))
 
 
 @app.route("/towns/<town>", methods=["GET"])
@@ -100,6 +113,13 @@ def overview():
 
 @app.route("/stats", methods=["GET"])
 def stats():
+    """Dataset-level summary. Also the same for everyone, so also cached."""
+    from step4_cache_redis import cached
+
+    return jsonify(cached("stats:summary", _compute_stats, ttl=STATIC_TTL_SECONDS))
+
+
+def _compute_stats():
     coll = get_db()[MONGO_COLLECTION]
     by_type = list(
         coll.aggregate(
@@ -118,13 +138,11 @@ def stats():
     for row in by_type:
         row["avg_price"] = round(row["avg_price"], 2)
 
-    return jsonify(
-        {
-            "total_transactions": coll.count_documents({}),
-            "towns": len(coll.distinct("town")),
-            "by_flat_type": by_type,
-        }
-    )
+    return {
+        "total_transactions": coll.count_documents({}),
+        "towns": len(coll.distinct("town")),
+        "by_flat_type": by_type,
+    }
 
 
 @app.route("/health", methods=["GET"])

@@ -28,6 +28,25 @@ from config import CACHE_TTL_SECONDS, get_redis
 from step2_load_mongo import market_overview, town_summary
 
 
+def cached(key, compute, ttl=CACHE_TTL_SECONDS):
+    """Generic cache-then-store: return the cached value, or compute and keep it.
+
+    The same four lines as cached_town_summary() below, with the specific
+    query swapped for any function. Used for the queries that are identical
+    for every visitor - the town list, the dataset summary - which are the
+    textbook things to cache: expensive to fetch, same answer for everyone,
+    and harmless if a few seconds stale.
+    """
+    r = get_redis()
+    hit = r.get(key)
+    if hit is not None:
+        return json.loads(hit)
+
+    value = compute()
+    r.setex(key, ttl, json.dumps(value))
+    return value
+
+
 def cached_town_summary(town, ttl=CACHE_TTL_SECONDS, verbose=False):
     """town_summary() with Redis in front of it."""
     r = get_redis()
