@@ -50,6 +50,27 @@ sudo systemctl start mongod redis
 # or, with Docker, if you would rather not install either
 docker run -d --name hdb-mongo -p 27017:27017 mongo
 docker run -d --name hdb-redis -p 6379:6379 redis
+
+# For WSL
+# --- MongoDB ---
+curl -fsSL https://pgp.mongodb.com/server-7.0.asc | sudo gpg -o /usr/share/keyrings/mongodb-server-7.0.gpg --dearmor
+
+echo "deb [ arch=amd64,arm64 signed-by=/usr/share/keyrings/mongodb-server-7.0.gpg ] https://repo.mongodb.org/apt/ubuntu jammy/mongodb-org/7.0 multiverse" | sudo tee /etc/apt/sources.list.d/mongodb-org-7.0.list
+
+sudo apt update
+sudo apt install -y mongodb-org
+
+# --- Redis ---
+sudo apt install -y redis-server
+
+# --- Start both ---
+sudo systemctl start mongod
+sudo systemctl start redis-server
+
+# --- Verify ---
+mongosh --eval "db.version()"
+redis-cli ping
+
 ```
 
 Those two commands pull the official MongoDB and Redis images straight from
