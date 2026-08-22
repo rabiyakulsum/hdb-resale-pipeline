@@ -73,6 +73,18 @@ redis-cli ping
 
 ```
 
+## To stop the services being run locally
+For WSL
+```bash
+sudo systemctl stop mongod
+sudo systemctl stop redis-server
+```
+For mac
+```bash
+brew services stop mongodb-community
+brew services stop redis
+```
+
 Those two commands pull the official MongoDB and Redis images straight from
 Docker Hub and run them — there is no Dockerfile or compose file in this repo
 because there is nothing here to build. Stop them again with
